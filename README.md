@@ -1,12 +1,17 @@
 # DumbDock Amp
 
-## Download (Windows)
-**[Download DumbDockAmp-Windows.zip](https://github.com/dorukdikmeer2/Plugin-Dumbo-Amp/raw/main/downloads/DumbDockAmp-Windows.zip)** (latest, revision 4)
+## Download (latest)
+| System | Download |
+|---|---|
+| **macOS** (Apple Silicon + Intel) | [DumbDockAmp-macOS.zip](https://github.com/dorukdikmeer2/Plugin-Dumbo-Amp/releases/download/latest/DumbDockAmp-macOS.zip) |
+| **Windows** | [DumbDockAmp-Windows-MSVC.zip](https://github.com/dorukdikmeer2/Plugin-Dumbo-Amp/releases/download/latest/DumbDockAmp-Windows-MSVC.zip) |
 
-Unzip it, double-click `Install-DumbDockAmp.exe`, then in Reaper rescan plug-ins and add `VST3: DumbDock Amp`.
-Details are in `README-FIRST.txt` inside the zip. SHA-256 checksums are in `SHA256SUMS.txt` next to the installer.
-macOS: build it with the GitHub workflow (see BUILD_INSTRUCTIONS.md). The Windows build has not been tested on a real Windows machine by the author yet.
-
+Both are built automatically by GitHub from the newest `main` and passed the strict pluginval check on their own system
+([all builds on the Releases page](https://github.com/dorukdikmeer2/Plugin-Dumbo-Amp/releases/tag/latest)).
+Unzip, then follow `README-FIRST.txt` inside (Windows: double-click `Install-DumbDockAmp.exe`; macOS: open `Install-DumbDockAmp.pkg`).
+Then rescan plug-ins in your DAW and add `VST3: DumbDock Amp`.
+The macOS installer is not notarised (no Apple developer account), so macOS asks you to confirm opening it once; the steps are in the README-FIRST file.
+Not yet tried by the author on a real Mac or Windows machine, only by GitHub's test machines.
 
 A two-amp guitar VST3 plugin built from hand-drawn circuit schematics, with two cabinets and a microphone model.
 Personal project (JUCE 7, C++17). Mono guitar in, stereo out.
