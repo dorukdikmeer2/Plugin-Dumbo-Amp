@@ -12,9 +12,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ilammy/msvc-dev-cmd@v1
       - name: Build VST3
+        shell: bash
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDUMBDOCK_STANDALONE=OFF
-          cmake --build build --config Release --target DumbDockAmp_VST3 -j 4
+          fail() { echo "::error title=$1 failed::$(grep -iE 'error|fatal|undefined|cannot' build.log | head -30 | cut -c1-300 | sed 's/%/%25/g' | tr '\n' '~')"; exit 1; }
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDUMBDOCK_STANDALONE=OFF > build.log 2>&1 || fail configure
+          cmake --build build --config Release --target DumbDockAmp_VST3 -j 4 >> build.log 2>&1 || fail build
       - name: Validate with pluginval (strict)
         shell: bash
         run: |
@@ -41,16 +43,18 @@ jobs:
           mkdir DumbDockAmp-Windows
           cp out/Install-DumbDockAmp.exe out/Uninstall-DumbDockAmp.exe DumbDockAmp-Windows/
           cp installer/README-FIRST-windows.txt DumbDockAmp-Windows/README-FIRST.txt
+          7z a DumbDockAmp-Windows-MSVC.zip DumbDockAmp-Windows
       - uses: actions/upload-artifact@v4
-        with: { name: DumbDockAmp-Windows-installer, path: DumbDockAmp-Windows }
+        with: { name: DumbDockAmp-Windows-installer, path: DumbDockAmp-Windows-MSVC.zip }
   macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Build universal VST3
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDUMBDOCK_STANDALONE=OFF "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
-          cmake --build build --config Release --target DumbDockAmp_VST3 -j 4
+          fail() { echo "::error title=$1 failed::$(grep -iE 'error|fatal|undefined|cannot' build.log | head -30 | cut -c1-300 | sed 's/%/%25/g' | tr '\n' '~')"; exit 1; }
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDUMBDOCK_STANDALONE=OFF "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 > build.log 2>&1 || fail configure
+          cmake --build build --config Release --target DumbDockAmp_VST3 -j 4 >> build.log 2>&1 || fail build
       - name: Validate with pluginval (strict)
         run: |
           curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
@@ -63,8 +67,9 @@ jobs:
           codesign --force --deep -s - "pkgroot/Library/Audio/Plug-Ins/VST3/DumbDock Amp.vst3"
           pkgbuild --root pkgroot --identifier com.dorukaudio.dumbdockamp --version 2.0.0 --install-location / dist/Install-DumbDockAmp.pkg
           cp installer/README-FIRST-mac.txt dist/README-FIRST.txt
+          ditto -c -k --keepParent dist DumbDockAmp-macOS.zip
       - uses: actions/upload-artifact@v4
-        with: { name: DumbDockAmp-macOS-installer, path: dist }
+        with: { name: DumbDockAmp-macOS-installer, path: DumbDockAmp-macOS.zip }
   linux:
     runs-on: ubuntu-latest
     steps:
@@ -80,3 +85,24 @@ jobs:
           xvfb-run -a ./pluginval --strictness-level 10 --validate-in-process --skip-gui-tests "build/DumbDockAmp_artefacts/Release/VST3/DumbDock Amp.vst3"
       - uses: actions/upload-artifact@v4
         with: { name: DumbDockAmp-Linux-vst3, path: build/DumbDockAmp_artefacts/Release/VST3 }
+
+  # Publishes (or refreshes) the "latest" release with the macOS and Windows downloads built above.
+  release:
+    needs: [windows, macos, linux]
+    if: ${{ always() && github.ref == 'refs/heads/main' && needs.macos.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dl }
+        continue-on-error: true
+      - name: Publish release "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          find dl -name '*.zip' -exec cp {} . \;
+          ls -la *.zip
+          gh release delete latest --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+          gh release create latest *.zip --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Latest build" \
+            --notes "Automatic build of the latest main branch. macOS: DumbDockAmp-macOS.zip. Windows (MSVC build): DumbDockAmp-Windows-MSVC.zip. Not signed or notarised; see README-FIRST.txt inside each zip."
