@@ -144,7 +144,8 @@ void DumbDockAmpAudioProcessorEditor::showWelcome()
 {
     if (welcome != nullptr) return;
     welcome = std::make_unique<WelcomePopup>([this] {
-        juce::MessageManager::callAsync([safe = juce::Component::SafePointer<DumbDockAmpAudioProcessorEditor>(this)] {
+        juce::Component::SafePointer<DumbDockAmpAudioProcessorEditor> safe(this);      // made here, not in the capture list (MSVC rejects `this` there)
+        juce::MessageManager::callAsync([safe] {
             if (safe != nullptr) safe->hideWelcome(); });
     });
     addAndMakeVisible(*welcome);

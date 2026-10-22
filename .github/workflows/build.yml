@@ -47,7 +47,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: DumbDockAmp-Windows-installer, path: DumbDockAmp-Windows-MSVC.zip }
   macos:
-    runs-on: macos-latest
+    runs-on: macos-14      # JUCE 7.0.12 does not compile with the newest macOS SDK (CGWindowListCreateImage was removed)
     steps:
       - uses: actions/checkout@v4
       - name: Build universal VST3
