@@ -1,5 +1,13 @@
 # DumbDock Amp
 
+## Download (Windows)
+**[Download DumbDockAmp-Windows.zip](https://github.com/dorukdikmeer2/Plugin-Dumbo-Amp/raw/main/downloads/DumbDockAmp-Windows.zip)** (latest, revision 4)
+
+Unzip it, double-click `Install-DumbDockAmp.exe`, then in Reaper rescan plug-ins and add `VST3: DumbDock Amp`.
+Details are in `README-FIRST.txt` inside the zip. SHA-256 checksums are in `SHA256SUMS.txt` next to the installer.
+macOS: build it with the GitHub workflow (see BUILD_INSTRUCTIONS.md). The Windows build has not been tested on a real Windows machine by the author yet.
+
+
 A two-amp guitar VST3 plugin built from hand-drawn circuit schematics, with two cabinets and a microphone model.
 Personal project (JUCE 7, C++17). Mono guitar in, stereo out.
 
