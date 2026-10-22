@@ -1,0 +1,12 @@
+Only needed for macOS (or to get a Microsoft-compiler Windows build). Windows users can use the ready-made
+installer in the Windows folder instead. No coding, only clicking:
+1. Make a free account at github.com and press "New repository" (Private is fine), name it dumbdock.
+2. Unzip DumbDockAmp.zip. In the new repository press "Add file > Upload files", drag in EVERYTHING from
+   the unzipped folder (including the hidden .github folder; if your file manager hides it, enable
+   "show hidden files") and press "Commit changes".
+3. Open the "Actions" tab. Wait about 15-25 minutes for the green ticks.
+4. Click the finished run; at the bottom under "Artifacts" download
+   DumbDockAmp-Windows-installer / DumbDockAmp-macOS-installer.
+5. Unzip it and follow its README-FIRST.txt.
+If a job shows a red cross, the plugin failed its safety check (pluginval) on that system: do not use it,
+and send me the red log.

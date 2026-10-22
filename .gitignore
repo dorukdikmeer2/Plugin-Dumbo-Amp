@@ -1,0 +1,8 @@
+build/
+build*/
+tests/build/
+*.d
+*.o
+*.log
+JUCE/
+.DS_Store

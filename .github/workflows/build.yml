@@ -1,0 +1,82 @@
+# One-click installers for Windows and macOS (plus a Linux build), all validated with pluginval.
+# How to use without any coding: see HOW_TO_GET_INSTALLERS.txt.
+# NOTE: written by the plugin's author tooling; the Windows/macOS jobs here have NOT been run yet.
+name: build-installers
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build VST3
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDUMBDOCK_STANDALONE=OFF
+          cmake --build build --config Release --target DumbDockAmp_VST3 -j 4
+      - name: Validate with pluginval (strict)
+        shell: bash
+        run: |
+          curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          unzip -q pv.zip
+          ./pluginval.exe --strictness-level 10 --validate-in-process --skip-gui-tests --output-dir pvlog "build/DumbDockAmp_artefacts/Release/VST3/DumbDock Amp.vst3"
+      - name: Build Install / Uninstall .exe
+        shell: cmd
+        run: |
+          mkdir out
+          copy "build\DumbDockAmp_artefacts\Release\VST3\DumbDock Amp.vst3\Contents\x86_64-win\DumbDock Amp.vst3" out\plugin.dll
+          copy installer\windows\installer.manifest out\
+          cd out
+          echo 1 24 "installer.manifest"> uninstall.rc
+          echo 1 24 "installer.manifest"> install.rc
+          echo 101 RCDATA "plugin.dll">> install.rc
+          rc /nologo install.rc
+          rc /nologo uninstall.rc
+          cl /nologo /O2 /EHsc /std:c++17 /MT /DUNICODE /D_UNICODE ..\installer\windows\installer.cpp install.res /Fe:Install-DumbDockAmp.exe /link /SUBSYSTEM:WINDOWS shell32.lib user32.lib ole32.lib
+          cl /nologo /O2 /EHsc /std:c++17 /MT /DUNICODE /D_UNICODE /DUNINSTALL ..\installer\windows\installer.cpp uninstall.res /Fe:Uninstall-DumbDockAmp.exe /link /SUBSYSTEM:WINDOWS shell32.lib user32.lib ole32.lib
+      - name: Collect
+        shell: bash
+        run: |
+          mkdir DumbDockAmp-Windows
+          cp out/Install-DumbDockAmp.exe out/Uninstall-DumbDockAmp.exe DumbDockAmp-Windows/
+          cp installer/README-FIRST-windows.txt DumbDockAmp-Windows/README-FIRST.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: DumbDockAmp-Windows-installer, path: DumbDockAmp-Windows }
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build universal VST3
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDUMBDOCK_STANDALONE=OFF "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13
+          cmake --build build --config Release --target DumbDockAmp_VST3 -j 4
+      - name: Validate with pluginval (strict)
+        run: |
+          curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+          unzip -q pv.zip
+          ./pluginval.app/Contents/MacOS/pluginval --strictness-level 10 --validate-in-process --skip-gui-tests --output-dir pvlog "build/DumbDockAmp_artefacts/Release/VST3/DumbDock Amp.vst3"
+      - name: Make installer package
+        run: |
+          mkdir -p pkgroot/Library/Audio/Plug-Ins/VST3 dist
+          cp -R "build/DumbDockAmp_artefacts/Release/VST3/DumbDock Amp.vst3" pkgroot/Library/Audio/Plug-Ins/VST3/
+          codesign --force --deep -s - "pkgroot/Library/Audio/Plug-Ins/VST3/DumbDock Amp.vst3"
+          pkgbuild --root pkgroot --identifier com.dorukaudio.dumbdockamp --version 2.0.0 --install-location / dist/Install-DumbDockAmp.pkg
+          cp installer/README-FIRST-mac.txt dist/README-FIRST.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: DumbDockAmp-macOS-installer, path: dist }
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libasound2-dev libfreetype-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libgl1-mesa-dev xvfb
+      - run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDUMBDOCK_STANDALONE=OFF
+          cmake --build build --target DumbDockAmp_VST3 -j 4
+      - run: bash tests/run_audit.sh
+      - run: |
+          curl -sSL -o pv.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip
+          unzip -q pv.zip
+          xvfb-run -a ./pluginval --strictness-level 10 --validate-in-process --skip-gui-tests "build/DumbDockAmp_artefacts/Release/VST3/DumbDock Amp.vst3"
+      - uses: actions/upload-artifact@v4
+        with: { name: DumbDockAmp-Linux-vst3, path: build/DumbDockAmp_artefacts/Release/VST3 }
